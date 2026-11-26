@@ -137,7 +137,7 @@
           cat:p.category,icon:p.icon||"🛍️",image:p.image_url||"",
           desc:p.description||"Produto personalizado. Contacta-nos para mais informações."
         }));
-        updateCart();loadProducts();
+        render();updateCart();
         if(!products.length)grid.innerHTML='<div class="empty">Ainda não existem produtos publicados.</div>';
       }catch(error){
         console.error("Erro ao carregar catálogo:",error);
@@ -155,7 +155,7 @@
     document.getElementById("closeCart").addEventListener("click",closeCart);
     overlay.addEventListener("click",e=>{if(e.target===overlay)closeCart()});
     document.getElementById("checkoutButton").addEventListener("click",checkout);
-    render();updateCart();
+    updateCart();loadProducts();
   </script>
 </body>
 </html>
