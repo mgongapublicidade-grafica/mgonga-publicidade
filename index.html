@@ -88,6 +88,9 @@
       const extra=document.getElementById("extra").value.trim()||"Não indicado";
       const details=`PEDIDO DE ORÇAMENTO/ENCOMENDA — MGONGA PUBLICIDADE\n${lines.join("\n")}\nTOTAL INDICATIVO: ${money(total)}\nPersonalização/observações: ${extra}`;
       const button=document.getElementById("checkoutButton");
+      // Abrir a janela durante o clique do utilizador evita bloqueio de pop-ups após o fetch.
+      const whatsappWindow=window.open("about:blank","_blank");
+      if(whatsappWindow)whatsappWindow.opener=null;
       button.disabled=true;button.textContent="A registar pedido...";
       try{
         const response=await fetch(`${SUPABASE_URL}/rest/v1/quote_requests`,{
@@ -114,9 +117,14 @@
         const saved=await response.json();
         const orderId=saved?.[0]?.id||"Registado";
         const message=`PEDIDO REGISTADO — MGONGA PUBLICIDADE\nReferência: ${orderId}\nCliente: ${name}\nTelefone: ${phone}\nEntrega: ${address}\n\n${lines.join("\n")}\nTOTAL INDICATIVO: ${money(total)}\n\nPersonalização/observações: ${extra}\n\nAguardo confirmação de preço, disponibilidade e entrega.`;
-        window.open(whatsappLink(message),"_blank","noopener,noreferrer");
+        if(whatsappWindow){
+          whatsappWindow.location.href=whatsappLink(message);
+        }else{
+          window.location.href=whatsappLink(message);
+        }
         alert("Pedido registado com sucesso! Vamos abrir o WhatsApp para concluir o atendimento.");
       }catch(error){
+        if(whatsappWindow&&!whatsappWindow.closed)whatsappWindow.close();
         console.error("Erro ao registar pedido:",error);
         alert("Não foi possível registar o pedido na base de dados. Verifica a ligação e tenta novamente ou contacta-nos pelo WhatsApp.");
       }finally{
