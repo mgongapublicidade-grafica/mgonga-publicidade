@@ -48,23 +48,11 @@
 
   <div class="overlay" id="overlay" aria-hidden="true"><aside class="drawer" role="dialog" aria-modal="true" aria-labelledby="cartTitle"><div class="drawer-head"><h2 id="cartTitle">O teu carrinho</h2><button class="close" id="closeCart" type="button">Fechar ✕</button></div><div id="cartItems"></div><div class="total"><span>Total indicativo</span><span id="total">0 Kz</span></div><div class="checkout"><h3>Dados para encomenda</h3><input id="customer" autocomplete="name" placeholder="Nome completo"><input id="phone" autocomplete="tel" placeholder="Telefone / WhatsApp"><input id="address" autocomplete="street-address" placeholder="Morada ou zona de entrega"><textarea id="extra" placeholder="Personalização, tamanhos, quantidades ou observações"></textarea><button class="whatsapp" id="checkoutButton" type="button">Enviar pedido pelo WhatsApp</button><p class="note">O pedido será enviado para o WhatsApp da MGONGA PUBLICIDADE. A encomenda só fica confirmada após validação de preço, disponibilidade e entrega.</p></div></aside></div>
   <script>
-    // Imagens ilustrativas de produtos. Actualizar com fotografias próprias para mostrar exactamente os artigos disponíveis.
+    // Ligação pública do catálogo ao Supabase. A chave publishable/anon é própria para uso no navegador.
     const WHATSAPP = "244941503417";
-    const photo = id => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=800&q=80`;
-    const products = [
-      {id:1,name:"Placas e sinalética",price:2500,cat:"Sinalética e publicidade",icon:"🪧",image:photo("photo-1497366754035-f200968a6e72"),desc:"Placas e sinalização personalizadas. Preço desde, conforme medidas e material."},
-      {id:2,name:"Uniformes e coletes",price:5000,cat:"Vestuário e fardamento",icon:"🦺",image:photo("photo-1521572163474-6864f9cf17ab"),desc:"Fardamento para equipas e empresas, com opção de personalização."},
-      {id:3,name:"Sacolas personalizadas",price:1100,cat:"Embalagens",icon:"🛍️",image:photo("photo-1606760227091-3dd870d97f1d"),desc:"Sacolas personalizadas para lojas, eventos, brindes e marcas."},
-      {id:4,name:"Fitas porta-passe",price:1800,cat:"Identificação",icon:"🎗️",image:photo("photo-1553062407-98eeb64c6a62"),desc:"Fitas porta-passe personalizadas para eventos e equipas."},
-      {id:5,name:"Crachás e passe PVC",price:2450,cat:"Identificação",icon:"🪪",image:photo("photo-1586281380349-632531db7ed4"),desc:"Crachás e identificadores em PVC. Consulte quantidade e acabamento."},
-      {id:6,name:"Pins e botões",price:1350,cat:"Brindes personalizados",icon:"📍",image:photo("photo-1531058020387-3be344556be6"),desc:"Pins e botões personalizados para campanhas, equipas e eventos."},
-      {id:7,name:"Capacetes",price:6950,cat:"Segurança e trabalho",icon:"⛑️",image:photo("photo-1504307651254-35680f356dfd"),desc:"Capacetes de segurança. Personalização e disponibilidade a confirmar."},
-      {id:8,name:"Blocos de notas",price:7950,cat:"Papelaria",icon:"📓",image:photo("photo-1544816155-12df9643f363"),desc:"Blocos de notas para escritório, brindes e identidade empresarial."},
-      {id:9,name:"Carimbos automáticos",price:15900,cat:"Papelaria",icon:"🔴",image:photo("photo-1455390582262-044caded277a"),desc:"Carimbos para empresas e uso profissional. Consulte modelos e formatos."},
-      {id:10,name:"Expositores e displays",price:null,cat:"Sinalética e publicidade",icon:"📢",image:photo("photo-1497366811353-6870744d04b2"),desc:"Estruturas e displays promocionais. Preço sob orçamento conforme o modelo."},
-      {id:11,name:"Canetas personalizadas",price:1200,cat:"Brindes personalizados",icon:"🖊️",image:photo("photo-1583485088034-697b5bc54ccd"),desc:"Canetas promocionais com nome, marca ou logótipo."},
-      {id:12,name:"T-shirts desportivas",price:5750,cat:"Vestuário e fardamento",icon:"👕",image:photo("photo-1521572163474-6864f9cf17ab"),desc:"T-shirts desportivas personalizadas. Consulte tamanhos, cores e quantidades."}
-    ];
+    const SUPABASE_URL = "https://vxmnddqepgioblpxamcg.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_IqjMG-kefkBG3VIfvU_Y_A_xiCOfmHI";
+    let products = [];
     let category="Todos";
     let cart=JSON.parse(localStorage.getItem("mgonga_cart")||"{}")||{};
     const money=n=>Number(n||0).toLocaleString("pt-AO")+" Kz";
@@ -74,34 +62,92 @@
       const categories=["Todos",...new Set(products.map(p=>p.cat))];
       document.getElementById("categories").innerHTML=categories.map(c=>`<button class="chip ${category===c?"active":""}" type="button" data-category="${escapeHTML(c)}">${escapeHTML(c)}</button>`).join("");
       const list=products.filter(p=>(category==="Todos"||p.cat===category)&&`${p.name} ${p.desc} ${p.cat}`.toLocaleLowerCase("pt-AO").includes(query));
-      document.getElementById("grid").innerHTML=list.length?list.map(p=>`<article class="product"><div class="product-art"><img src="${p.image}" alt="${escapeHTML(p.name)}" loading="lazy" onerror="this.outerHTML='<span class=\'fallback\' aria-hidden=\'true\'>${p.icon}</span>'"></div><div class="product-body"><div class="tag">${escapeHTML(p.cat)}</div><h3>${escapeHTML(p.name)}</h3><div class="desc">${escapeHTML(p.desc)}</div><div class="price">${p.price?"Desde "+money(p.price):"Sob orçamento"}${p.price?'<small> • preço indicativo</small>':''}</div><div class="product-actions"><button class="add" type="button" data-add="${p.id}">Adicionar ao carrinho</button><button class="buy" type="button" data-buy="${p.id}">Consultar pelo WhatsApp</button></div></div></article>`).join(""):`<div class="empty">Não encontrámos produtos. Experimenta outra pesquisa ou categoria.</div>`;
+      document.getElementById("grid").innerHTML=list.length?list.map(p=>`<article class="product"><div class="product-art"><img src="${p.image}" alt="${escapeHTML(p.name)}" loading="lazy" onerror="this.outerHTML='<span class=\'fallback\' aria-hidden=\'true\'>${p.icon}</span>'"></div><div class="product-body"><div class="tag">${escapeHTML(p.cat)}</div><h3>${escapeHTML(p.name)}</h3><div class="desc">${escapeHTML(p.desc)}</div><div class="price">${p.price!==null?"Desde "+money(p.price):"Sob orçamento"}${p.price?'<small> • preço indicativo</small>':''}</div><div class="product-actions"><button class="add" type="button" data-add="${p.id}">Adicionar ao carrinho</button><button class="buy" type="button" data-buy="${p.id}">Consultar pelo WhatsApp</button></div></div></article>`).join(""):`<div class="empty">Não encontrámos produtos. Experimenta outra pesquisa ou categoria.</div>`;
     }
     function saveCart(){localStorage.setItem("mgonga_cart",JSON.stringify(cart));updateCart()}
     function addToCart(id){cart[id]=(cart[id]||0)+1;saveCart()}
     function updateCart(){
-      const entries=Object.entries(cart).filter(([id,q])=>products.some(p=>p.id===Number(id))&&q>0);
+      const entries=Object.entries(cart).filter(([id,q])=>products.some(p=>p.id===id)&&q>0);
       document.getElementById("count").textContent=entries.reduce((sum,[,q])=>sum+q,0);
-      document.getElementById("cartItems").innerHTML=entries.length?entries.map(([id,q])=>{const p=products.find(x=>x.id===Number(id));return `<div class="cart-line"><div><b>${escapeHTML(p.name)}</b><br><span class="note">${p.price?money(p.price)+" cada":"Sob orçamento"}</span></div><div class="qty"><button type="button" data-qty="${id}" data-delta="-1" aria-label="Diminuir quantidade">−</button>${q}<button type="button" data-qty="${id}" data-delta="1" aria-label="Aumentar quantidade">+</button></div></div>`}).join(""):'<p class="note">O carrinho está vazio.</p>';
-      const total=entries.reduce((sum,[id,q])=>sum+(products.find(p=>p.id===Number(id)).price||0)*q,0);
-      const quote=entries.some(([id])=>!products.find(p=>p.id===Number(id)).price);
+      document.getElementById("cartItems").innerHTML=entries.length?entries.map(([id,q])=>{const p=products.find(x=>x.id===id);return `<div class="cart-line"><div><b>${escapeHTML(p.name)}</b><br><span class="note">${p.price!==null?money(p.price)+" cada":"Sob orçamento"}</span></div><div class="qty"><button type="button" data-qty="${id}" data-delta="-1" aria-label="Diminuir quantidade">−</button>${q}<button type="button" data-qty="${id}" data-delta="1" aria-label="Aumentar quantidade">+</button></div></div>`}).join(""):'<p class="note">O carrinho está vazio.</p>';
+      const total=entries.reduce((sum,[id,q])=>sum+(products.find(p=>p.id===id).price||0)*q,0);
+      const quote=entries.some(([id])=>!products.find(p=>p.id===id).price);
       document.getElementById("total").textContent=money(total)+(quote?" + itens sob orçamento":"");
     }
     function whatsappLink(message){return `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(message)}`}
-    function buyOne(id){const p=products.find(x=>x.id===Number(id));if(!p)return;const msg=`Olá, MGONGA PUBLICIDADE! Gostaria de consultar/encomendar: ${p.name}.\nPreço apresentado: ${p.price?"desde "+money(p.price)+" (indicativo)":"sob orçamento"}.\nPodem informar disponibilidade, personalização e entrega?`;window.open(whatsappLink(msg),"_blank","noopener,noreferrer")}
-    function checkout(){
-      const entries=Object.entries(cart).filter(([id,q])=>products.some(p=>p.id===Number(id))&&q>0);
+    function buyOne(id){const p=products.find(x=>x.id===id);if(!p)return;const msg=`Olá, MGONGA PUBLICIDADE! Gostaria de consultar/encomendar: ${p.name}.\nPreço apresentado: ${p.price?"desde "+money(p.price)+" (indicativo)":"sob orçamento"}.\nPodem informar disponibilidade, personalização e entrega?`;window.open(whatsappLink(msg),"_blank","noopener,noreferrer")}
+    async function checkout(){
+      const entries=Object.entries(cart).filter(([id,q])=>products.some(p=>p.id===id)&&q>0);
       if(!entries.length){alert("O carrinho está vazio.");return}
-      const name=document.getElementById("customer").value.trim(),phone=document.getElementById("phone").value.trim(),address=document.getElementById("address").value.trim();
+      const name=document.getElementById("customer").value.trim();
+      const phone=document.getElementById("phone").value.trim();
+      const address=document.getElementById("address").value.trim();
       if(!name||!phone||!address){alert("Preenche o nome, telefone e morada/zona de entrega.");return}
-      const lines=entries.map(([id,q])=>{const p=products.find(x=>x.id===Number(id));return `${q} x ${p.name} — ${p.price?money(p.price*q)+" (desde, indicativo)":"sob orçamento"}`});
-      const total=entries.reduce((sum,[id,q])=>sum+(products.find(p=>p.id===Number(id)).price||0)*q,0);
-      const message=`PEDIDO DE ORÇAMENTO/ENCOMENDA — MGONGA PUBLICIDADE\nCliente: ${name}\nTelefone: ${phone}\nEntrega: ${address}\n\n${lines.join("\n")}\nTOTAL INDICATIVO: ${money(total)}\n\nPersonalização/observações: ${document.getElementById("extra").value.trim()||"Não indicado"}\n\nSei que os preços são indicativos e aguardarei confirmação.`;
-      window.open(whatsappLink(message),"_blank","noopener,noreferrer");
+      const lines=entries.map(([id,q])=>{const p=products.find(x=>x.id===id);return `${q} x ${p.name} — ${p.price!==null?money(p.price*q)+" (preço indicativo)":"sob orçamento"}`});
+      const total=entries.reduce((sum,[id,q])=>sum+(products.find(p=>p.id===id).price||0)*q,0);
+      const extra=document.getElementById("extra").value.trim()||"Não indicado";
+      const details=`PEDIDO DE ORÇAMENTO/ENCOMENDA — MGONGA PUBLICIDADE\n${lines.join("\n")}\nTOTAL INDICATIVO: ${money(total)}\nPersonalização/observações: ${extra}`;
+      const button=document.getElementById("checkoutButton");
+      button.disabled=true;button.textContent="A registar pedido...";
+      try{
+        const response=await fetch(`${SUPABASE_URL}/rest/v1/quote_requests`,{
+          method:"POST",
+          headers:{
+            "apikey":SUPABASE_KEY,
+            "Authorization":`Bearer ${SUPABASE_KEY}`,
+            "Content-Type":"application/json",
+            "Prefer":"return=representation"
+          },
+          body:JSON.stringify({
+            customer_name:name,
+            phone:phone,
+            service_interest:"Encomenda pelo catálogo online",
+            project_details:details,
+            location:address,
+            preferred_contact:"whatsapp"
+          })
+        });
+        if(!response.ok){
+          const errorText=await response.text();
+          throw new Error(errorText||"Falha ao registar encomenda.");
+        }
+        const saved=await response.json();
+        const orderId=saved?.[0]?.id||"Registado";
+        const message=`PEDIDO REGISTADO — MGONGA PUBLICIDADE\nReferência: ${orderId}\nCliente: ${name}\nTelefone: ${phone}\nEntrega: ${address}\n\n${lines.join("\n")}\nTOTAL INDICATIVO: ${money(total)}\n\nPersonalização/observações: ${extra}\n\nAguardo confirmação de preço, disponibilidade e entrega.`;
+        window.open(whatsappLink(message),"_blank","noopener,noreferrer");
+        alert("Pedido registado com sucesso! Vamos abrir o WhatsApp para concluir o atendimento.");
+      }catch(error){
+        console.error("Erro ao registar pedido:",error);
+        alert("Não foi possível registar o pedido na base de dados. Verifica a ligação e tenta novamente ou contacta-nos pelo WhatsApp.");
+      }finally{
+        button.disabled=false;button.textContent="Enviar pedido pelo WhatsApp";
+      }
+    }
+    async function loadProducts(){
+      const grid=document.getElementById("grid");
+      grid.innerHTML='<div class="empty">A carregar catálogo...</div>';
+      try{
+        const response=await fetch(`${SUPABASE_URL}/rest/v1/products?select=id,name,description,category,icon,image_url,price,is_published,sort_order&is_published=eq.true&order=sort_order.asc`,{
+          headers:{"apikey":SUPABASE_KEY,"Authorization":`Bearer ${SUPABASE_KEY}`}
+        });
+        if(!response.ok)throw new Error(await response.text());
+        const rows=await response.json();
+        products=rows.map(p=>({
+          id:p.id,name:p.name,price:p.price===null?null:Number(p.price),
+          cat:p.category,icon:p.icon||"🛍️",image:p.image_url||"",
+          desc:p.description||"Produto personalizado. Contacta-nos para mais informações."
+        }));
+        updateCart();loadProducts();
+        if(!products.length)grid.innerHTML='<div class="empty">Ainda não existem produtos publicados.</div>';
+      }catch(error){
+        console.error("Erro ao carregar catálogo:",error);
+        grid.innerHTML='<div class="empty">Não foi possível carregar o catálogo. Actualiza a página ou contacta-nos pelo WhatsApp.</div>';
+      }
     }
     document.getElementById("search").addEventListener("input",render);
     document.getElementById("searchButton").addEventListener("click",()=>document.getElementById("produtos").scrollIntoView({behavior:"smooth"}));
     document.getElementById("categories").addEventListener("click",e=>{const b=e.target.closest("[data-category]");if(b){category=b.dataset.category;render()}});
-    document.getElementById("grid").addEventListener("click",e=>{const add=e.target.closest("[data-add]"),buy=e.target.closest("[data-buy]");if(add)addToCart(Number(add.dataset.add));if(buy)buyOne(Number(buy.dataset.buy))});
+    document.getElementById("grid").addEventListener("click",e=>{const add=e.target.closest("[data-add]"),buy=e.target.closest("[data-buy]");if(add)addToCart(add.dataset.add);if(buy)buyOne(buy.dataset.buy)});
     document.getElementById("cartItems").addEventListener("click",e=>{const b=e.target.closest("[data-qty]");if(!b)return;const id=b.dataset.qty;cart[id]=(cart[id]||0)+Number(b.dataset.delta);if(cart[id]<=0)delete cart[id];saveCart()});
     const overlay=document.getElementById("overlay");
     document.getElementById("cartButton").addEventListener("click",()=>{overlay.classList.add("show");overlay.setAttribute("aria-hidden","false");updateCart()});
